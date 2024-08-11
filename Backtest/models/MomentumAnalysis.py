@@ -26,7 +26,7 @@ class MomentumAnalysis(BaseAnalysis):
         slow_ma = vbt.MA.run(self.price_data, long_window, short_name='slow')
         entries = fast_ma.ma_above(slow_ma)
         exits = fast_ma.ma_below(slow_ma)
-        return [entries, exits]
+        return (entries, exits)
 
     def MomentumBasedLongOnly(self, init_cash: float = 100000, overwrite: bool = False):
         """Return vbt portfolio object after applying MA strategy on price_data.
@@ -44,7 +44,7 @@ class MomentumAnalysis(BaseAnalysis):
         """
 
         if self.portfolio is None or overwrite:
-            [entries, exits] = self._MAStrategy(10, 30)
+            (entries, exits) = self._MAStrategy(10, 30)
             self.portfolio = Portfolio.from_signals(
                 self.price_data,
                 entries,
@@ -71,8 +71,8 @@ class MomentumAnalysis(BaseAnalysis):
         """
 
         if self.portfolio is None or overwrite:
-            [entries, exits] = self._MAStrategy(10, 30)
-            [short_entries, short_exits] = [exits, entries]
+            (entries, exits) = self._MAStrategy(10, 30)
+            (short_entries, short_exits) = (exits, entries)
             self.portfolio = Portfolio.from_signals(
                 self.price_data,
                 entries,
