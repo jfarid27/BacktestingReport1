@@ -12,6 +12,7 @@ vectorbt = "^0.26.2"
 jupyter = "^1.0.0"
 yfinance = "^0.2.41"
 lxml = "^5.3.0"
+pandas = "^2.2.2"
 
 
 [build-system]
