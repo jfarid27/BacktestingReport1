@@ -1,12 +1,21 @@
 import vectorbt as vbt
 from vectorbt.portfolio import Portfolio
-from BaseAnalysis import BaseAnalysis
+from Backtest.models.Analysis import BaseAnalysis
 
 
 class MomentumAnalysis(BaseAnalysis):
     """Class to perform momentum analysis on price_data."""
 
-    def _MAStrategy(self, short_window: int, long_window: int):
+    def __init__(self, price_data):
+        """Initialize the MomentumAnalysis class.
+
+        Args:
+            price_data (Any): The price data on which the analysis is to be performed.
+        """
+        self.price_data = price_data
+        self.portfolio = None
+
+    def _MAStrategy(self, short_window: int=15, long_window: int=50):
         """Return vbt entries and exits after applying MA strategy on price_data.
 
         This method calculates the moving averages (MA) for the given short and long windows
@@ -44,7 +53,7 @@ class MomentumAnalysis(BaseAnalysis):
         """
 
         if self.portfolio is None or overwrite:
-            (entries, exits) = self._MAStrategy(10, 30)
+            (entries, exits) = self._MAStrategy(15, 50)
             self.portfolio = Portfolio.from_signals(
                 self.price_data,
                 entries,
@@ -71,7 +80,7 @@ class MomentumAnalysis(BaseAnalysis):
         """
 
         if self.portfolio is None or overwrite:
-            (entries, exits) = self._MAStrategy(10, 30)
+            (entries, exits) = self._MAStrategy(10, 50)
             (short_entries, short_exits) = (exits, entries)
             self.portfolio = Portfolio.from_signals(
                 self.price_data,

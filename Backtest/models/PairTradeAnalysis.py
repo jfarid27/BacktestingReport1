@@ -2,8 +2,7 @@ import vectorbt as vbt
 from vectorbt.portfolio import Portfolio
 import numpy as np
 from typing import Any, Optional, List
-
-from BaseAnalysis import BaseAnalysis
+from Backtest.models.Analysis import BaseAnalysis
 
 def divergence_indicator(price_data, level=2):
     """
@@ -54,12 +53,19 @@ def generate_pairs(price_data, corr_threshold=0.7):
     asset_labels = [(corr_matrix.index[i], corr_matrix.columns[j]) for i, j in pairs]
     return asset_labels
 
-
-class PairTradingAnalysis(BaseAnalysis):
+class PairTradeAnalysis(BaseAnalysis):
     """Class to perform correlated pair analysis on price_data."""
     portfolios: Optional[List[Portfolio]] = None
     price_datas: Optional[List[Any]] = None
+    
+    def __init__(self, price_datas):
+        """Initialize the MomentumAnalysis class.
 
+        Args:
+            price_data (Any): The price data on which the analysis is to be performed.
+        """
+        self.price_datas = price_datas
+        self.portfolios = None
     
     def PairCorrLongOnly(self, init_cash: float = 100000, overwrite: bool = False):
         """Return vbt portfolio object after applying pair correlation strategy on price_data.

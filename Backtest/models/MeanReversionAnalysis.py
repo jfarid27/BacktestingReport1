@@ -1,10 +1,19 @@
 import vectorbt as vbt
 from vectorbt.portfolio import Portfolio
-from BaseAnalysis import BaseAnalysis
+from Backtest.models.Analysis import BaseAnalysis
 
 
 class MeanReversionAnalysis(BaseAnalysis):
     """Class to perform mean-reversion analysis on price_data."""
+
+    def __init__(self, price_data):
+        """Initialize the MeanReversionAnalysis class.
+
+        Args:
+            price_data (Any): The price data on which the analysis is to be performed.
+        """
+        self.price_data = price_data
+        self.portfolio = None
 
     def _MRStrategy(self, window: int=15, level: int=30):
         """Return vbt entries and exits after applying RSI strategy on price_data.
@@ -28,7 +37,7 @@ class MeanReversionAnalysis(BaseAnalysis):
         exits = rsi.rsi_crossed_above(100-level)
         return [entries, exits]
     
-    def MeamReversionBasedLongOnly(self, init_cash: float = 100000, overwrite: bool = False):
+    def MeanReversionBasedLongOnly(self, init_cash: float = 100000, overwrite: bool = False):
         """Return vbt portfolio object after applying MR strategy on price_data.
 
         Long only strategy. When the rsi indicator has cross into oversold, enters positions with

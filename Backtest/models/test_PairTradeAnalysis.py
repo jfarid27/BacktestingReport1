@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from PairTradeAnalysis import divergence_indicator, generate_pairs
+from Backtest.models.PairTradeAnalysis import divergence_indicator, generate_pairs
 
 def test_divergence_indicator():
     price_data = [(10, 20), (15, 25), (12, 18), (8, 16), (20, 40)]
