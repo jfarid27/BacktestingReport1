@@ -1,12 +1,14 @@
 import vectorbt as vbt
 from vectorbt.portfolio import Portfolio
 import numpy as np
-from typing import Any, Optional, List
+import pandas as pd
+from typing import Any, Optional, List, Tuple
 from Backtest.models.Analysis import BaseAnalysis
 
 def divergence_indicator(price_data, level=2):
     """
-    Calculates the divergence indicator for a given price data.
+    Calculates the divergence indicator for a given price data. Assumes two pairs and returns
+    entries and exits respective of the first item in the pair.
 
     Args:
         price_data (list of tuples): List of tuples containing the price data for two pairs.
@@ -22,9 +24,11 @@ def divergence_indicator(price_data, level=2):
     percent_change_pair1 = np.diff(pair1) / pair1[:-1] * 100
     percent_change_pair2 = np.diff(pair2) / pair2[:-1] * 100
     divergences = np.divide(percent_change_pair1, percent_change_pair2)
-    entries = np.logical_or(divergences > level, divergences < 1/level)
+    
+    entries = divergences < 1/level
+    exits = divergences > level
 
-    return entries
+    return (entries, exits)
 
 def generate_pairs(price_data, corr_threshold=0.7):
     """
@@ -48,27 +52,27 @@ def generate_pairs(price_data, corr_threshold=0.7):
 
     percent_changes = price_data.pct_change().dropna()
     corr_matrix = percent_changes.corr()
-    pairs = np.where(np.abs(corr_matrix) > corr_threshold)
+    pairs = np.where(corr_matrix > corr_threshold)
     pairs = [(i, j) for i, j in zip(*pairs) if i < j]
     asset_labels = [(corr_matrix.index[i], corr_matrix.columns[j]) for i, j in pairs]
     return asset_labels
 
 class PairTradeAnalysis(BaseAnalysis):
     """Class to perform correlated pair analysis on price_data."""
-    portfolios: Optional[List[Portfolio]] = None
-    price_datas: Optional[List[Any]] = None
+    portfolio: Optional[Portfolio] = None
+    price_data: Optional[List[Any]] = None
     
-    def __init__(self, price_datas):
+    def __init__(self, price_data):
         """Initialize the MomentumAnalysis class.
 
         Args:
             price_data (Any): The price data on which the analysis is to be performed.
         """
-        self.price_datas = price_datas
-        self.portfolios = None
+        self.price_data = price_data
+        self.portfolio = None
     
-    def PairCorrLongOnly(self, init_cash: float = 100000, overwrite: bool = False):
-        """Return vbt portfolio object after applying pair correlation strategy on price_data.
+    def PairCorrLongOnly(self, pairs: Tuple, portfolio_cash: float = 100000, overwrite: bool = False):
+        """Return vbt portfolio object after applying pair diversion strategy on price_data.
 
         Long only strategy. When the price ratio of two assets is below the lower bound,
         enters long position. Assumes total available cash is shared among all assets.
@@ -77,22 +81,32 @@ class PairTradeAnalysis(BaseAnalysis):
             Portfolio: The portfolio object after applying the pair correlation strategy.
         """
 
-        if self.portfolios is None or overwrite:
-            pairs = generate_pairs(self.price_data)
-            datasets = [self.price_data[[asset1, asset2]] for (asset1, asset2) in pairs]
-            self.price_datas = datasets
-            self.portfolios = []
-            for price_data in self.price_datas:
-                entries = divergence_indicator(price_data)
-                exits = not entries
-                portfolio = Portfolio.from_signals(
-                    price_data,
-                    entries,
-                    exits,
-                    init_cash=init_cash,
-                    cash_sharing=True
-                )
-                self.portfolios.push(portfolio)
-        return self.portfolios
+        if self.portfolio is None or overwrite:
+            (asset1, asset2) = pairs
+            pair_price_data = self.price_data[[asset1, asset2]]
+            
+            (entries1, exits1) = divergence_indicator(pair_price_data.values)
+
+            entries = pd.DataFrame({
+                asset1: entries1,
+                asset2: exits1
+            })
+
+            exits = pd.DataFrame({
+                asset1: exits1,
+                asset2: entries1
+            })
+
+            pair_price_data = pair_price_data.drop(pair_price_data.index[0])
+
+            self.portfolio = Portfolio.from_signals(
+                pair_price_data,
+                entries,
+                exits,
+                cash_sharing=True,
+                init_cash=portfolio_cash,
+            )
+
+        return self.portfolio
 
     

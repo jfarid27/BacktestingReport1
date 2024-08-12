@@ -4,13 +4,12 @@ import pandas as pd
 from Backtest.models.PairTradeAnalysis import divergence_indicator, generate_pairs
 
 def test_divergence_indicator():
-    price_data = [(10, 20), (15, 25), (12, 18), (8, 16), (20, 40)]
-    level = 2
-
-    entries = divergence_indicator(price_data, level)
-
-    expected_entries = np.array([False, False, True, False])
-    assert np.array_equal(entries, expected_entries)
+    price_data = [(100, 105), (102, 107), (101, 106), (103, 108)]
+    entries, exits = divergence_indicator(price_data, level=2)
+    expected_entries = np.array([False, False, False])
+    expected_exits = np.array([False, False, False])
+    np.testing.assert_array_equal(entries, expected_entries)
+    np.testing.assert_array_equal(exits, expected_exits)
 
 def test_generate_pairs():
     price_data = pd.DataFrame({

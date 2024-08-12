@@ -41,16 +41,20 @@ def plot_statistics(data: np.ndarray, target: float = None, **kwargs):
         **kwargs: Additional keyword arguments to pass to the figure's layout. These can be any valid Plotly layout options.
 
     """
-    x = np.linspace(-4, 4, 1000)
-    z_scores = stats.norm.pdf(x)
+    mean = np.mean(data)
+    variance = np.var(data)
+    std_dev = np.sqrt(variance)
+
+    x = np.linspace(mean - 4*std_dev, mean + 4*std_dev, 1000)
+    fitted_normal_curve = stats.norm.pdf(x, mean, std_dev)
 
     mean = np.mean(data)
 
     normal_curve = go.Scatter(
         x=x,
-        y=z_scores,
+        y=fitted_normal_curve,
         mode='lines',
-        name='Standard Normal Distribution',
+        name='Fit Normal Distribution',
         line=dict(color='red')
     )
 
