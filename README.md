@@ -9,15 +9,15 @@ run with miniconda environments.
 
 ### Install Poetry with bash
 
-    ```bash
-        curl -sSL https://install.python-poetry.org | python3 -
-    ```
+```bash
+    curl -sSL https://install.python-poetry.org | python3 -
+```
 
 ### Install Poetry with bash
 
-    ```bash
-        pip install poetry
-    ```
+```bash
+    pip install poetry
+```
 
 ## Installation
 
@@ -29,5 +29,6 @@ Testing is done with pytest. Pytest should have been installed as a dep, and tes
 
 ## Analysis Code
 
-TBD
+A sample analysis report can be found in the `BacktestsReport.ipynb`. Inside of Backtests.models is a set
+of strategy abstractions pre-set using `vectorbt`. 
 
