@@ -4,9 +4,15 @@ import plotly.graph_objects as go
 import scipy.stats as stats
 import numpy as np
 
-def plot_table_statistics(data: np.ndarray, **kwargs):
+def plot_table_statistics(data: np.ndarray, **kwargs):   
     """
     Generate a nice looking table of basic statistics for the data.
+
+    Parameters:
+        - data (np.ndarray): The input data array.
+
+        Returns:
+        None
     """
 
     benchmark_stats = stats.describe(data)
@@ -80,7 +86,6 @@ def plot_statistics(data: np.ndarray, target: float = None, **kwargs):
             line=dict(color="blue", width=2, dash="dash")
         )
 
-        # Add annotation
         fig.add_annotation(
             x=target,
             y=1.02,
@@ -102,7 +107,6 @@ def plot_statistics(data: np.ndarray, target: float = None, **kwargs):
             line=dict(color="green", width=2, dash="dash")
         )
 
-        # Add annotation
         fig.add_annotation(
             x=mean,
             y=1.02,
