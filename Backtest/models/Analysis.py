@@ -1,7 +1,126 @@
 from vectorbt.portfolio import Portfolio
 from typing import Any, Optional
+import plotly.graph_objects as go
+import scipy.stats as stats
+import numpy as np
+
+def plot_table_statistics(data: np.ndarray, **kwargs):
+    """
+    Generate a nice looking table of basic statistics for the data.
+    """
+
+    benchmark_stats = stats.describe(data)
+
+    table_data = [
+        ["Number of Observations", benchmark_stats.nobs],
+        ["Minimum", benchmark_stats.minmax[0]],
+        ["Maximum", benchmark_stats.minmax[1]],
+        ["Mean", benchmark_stats.mean],
+        ["Variance", benchmark_stats.variance],
+        ["Skewness", benchmark_stats.skewness],
+        ["Kurtosis", benchmark_stats.kurtosis]
+    ]
+
+    fig = go.Figure(data=[go.Table(
+        header=dict(values=["Statistic", "Value"],
+                    fill_color='paleturquoise',
+                    align='left'),
+        cells=dict(values=[[row[0] for row in table_data], [row[1] for row in table_data]],
+                fill_color='lavender',
+                align='left'))
+    ])
+
+    fig.show()
+
+def plot_statistics(data: np.ndarray, target: float = None, **kwargs):
+    """
+    Plots the histogram of the data and overlays the standard normal distribution curve.
+
+    Args:
+        data (np.ndarray): The data to plot. It should be a 1-dimensional array of standard normal variables.
+        **kwargs: Additional keyword arguments to pass to the figure's layout. These can be any valid Plotly layout options.
+
+    """
+    x = np.linspace(-4, 4, 1000)
+    z_scores = stats.norm.pdf(x)
+
+    mean = np.mean(data)
+
+    normal_curve = go.Scatter(
+        x=x,
+        y=z_scores,
+        mode='lines',
+        name='Standard Normal Distribution',
+        line=dict(color='red')
+    )
+
+    histogram = go.Histogram(
+        x=data,
+        nbinsx=30,
+        histnorm='probability density',
+        name='Data',
+        opacity=0.75
+    )
+
+    fig = go.Figure(data=[histogram, normal_curve])
+
+    if target:
+        fig.add_shape(
+            type="line",
+            x0=target,
+            y0=0,
+            x1=target,
+            y1=1,
+            xref='x',
+            yref='paper',
+            line=dict(color="blue", width=2, dash="dash")
+        )
+
+        # Add annotation
+        fig.add_annotation(
+            x=target,
+            y=1.02,
+            xref='x',
+            yref='paper',
+            text="target",
+            showarrow=False,
+            font=dict(color="blue")
+        )
+
+        fig.add_shape(
+            type="line",
+            x0=mean,
+            y0=0,
+            x1=mean,
+            y1=1,
+            xref='x',
+            yref='paper',
+            line=dict(color="green", width=2, dash="dash")
+        )
+
+        # Add annotation
+        fig.add_annotation(
+            x=mean,
+            y=1.02,
+            xref='x',
+            yref='paper',
+            text="mean",
+            showarrow=False,
+            font=dict(color="green")
+        )
+
+    fig.update_layout(
+        xaxis_title='Value',
+        yaxis_title='Density',
+        bargap=0.2,
+        **kwargs
+    )
+
+    fig.show()
 
 class BaseAnalysis():
     price_data: Any
     portfolio: Optional[Portfolio] = None
-    pass
+
+    
+

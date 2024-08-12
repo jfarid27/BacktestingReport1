@@ -33,8 +33,8 @@ class MomentumAnalysis(BaseAnalysis):
 
         fast_ma = vbt.MA.run(self.price_data, short_window, short_name='fast')
         slow_ma = vbt.MA.run(self.price_data, long_window, short_name='slow')
-        entries = fast_ma.ma_above(slow_ma)
-        exits = fast_ma.ma_below(slow_ma)
+        entries = fast_ma.ma_crossed_above(slow_ma)
+        exits = fast_ma.ma_crossed_below(slow_ma)
         return (entries, exits)
 
     def MomentumBasedLongOnly(self, init_cash: float = 100000, overwrite: bool = False):
