@@ -74,6 +74,27 @@ def plot_statistics(data: np.ndarray, target: float = None, **kwargs):
 
     fig = go.Figure(data=[histogram, normal_curve])
 
+    fig.add_shape(
+        type="line",
+        x0=mean,
+        y0=0,
+        x1=mean,
+        y1=1,
+        xref='x',
+        yref='paper',
+        line=dict(color="green", width=2, dash="dash")
+    )
+
+    fig.add_annotation(
+        x=mean,
+        y=1.02,
+        xref='x',
+        yref='paper',
+        text="mean",
+        showarrow=False,
+        font=dict(color="green")
+    )
+
     if target:
         fig.add_shape(
             type="line",
@@ -94,27 +115,6 @@ def plot_statistics(data: np.ndarray, target: float = None, **kwargs):
             text="target",
             showarrow=False,
             font=dict(color="blue")
-        )
-
-        fig.add_shape(
-            type="line",
-            x0=mean,
-            y0=0,
-            x1=mean,
-            y1=1,
-            xref='x',
-            yref='paper',
-            line=dict(color="green", width=2, dash="dash")
-        )
-
-        fig.add_annotation(
-            x=mean,
-            y=1.02,
-            xref='x',
-            yref='paper',
-            text="mean",
-            showarrow=False,
-            font=dict(color="green")
         )
 
     fig.update_layout(
