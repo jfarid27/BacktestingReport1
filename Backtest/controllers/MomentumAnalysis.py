@@ -1,6 +1,6 @@
 import vectorbt as vbt
 from vectorbt.portfolio import Portfolio
-from Backtest.models.Analysis import BaseAnalysis
+from Backtest.controllers.Analysis import BaseAnalysis
 
 
 class MomentumAnalysis(BaseAnalysis):

@@ -3,7 +3,7 @@ from vectorbt.portfolio import Portfolio
 import numpy as np
 import pandas as pd
 from typing import Any, Optional, List, Tuple
-from Backtest.models.Analysis import BaseAnalysis
+from Backtest.controllers.Analysis import BaseAnalysis
 
 def divergence_indicator(price_data, level=2):
     """
