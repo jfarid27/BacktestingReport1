@@ -103,3 +103,6 @@ $RECYCLE.BIN/
 
 # VS Code
 .vscode/
+
+# Environment Variables
+.env
