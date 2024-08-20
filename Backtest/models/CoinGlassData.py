@@ -1,43 +1,15 @@
 import requests
 import os
 import pandas as pd
+from Backtest.models.LocalDataStorage import LocalDataStore
 from dotenv import load_dotenv
 from typing import Optional, Any
 
 load_dotenv()
 api_key = os.getenv('COINGLASS_API_KEY')
 
-class CoinGlassData():
-    """
-    CoinGlassData class represents a data model for handling coin glass data.
-    Attributes:
-        file_path (str): The file path of the data file.
-    Methods:
-        __init__(file_path: str): Initializes a new instance of the CoinGlassData class.
-        fetch() -> pd.DataFrame: Fetches the data from a source and returns it as a pandas DataFrame.
-        load(debug=False, **kwargs) -> pd.DataFrame: Loads the data from the file or fetches it if the file does not exist, and returns it as a pandas DataFrame.
-    """
-
-    file_path: str
-    data: Optional[Any] = None
-
-    def __init__(self, file_path: str):
-        self.file_path = file_path
-
-    def fetch(self) -> pd.DataFrame:
-        pass
-
-    def load(self, debug=False, **kwargs) -> pd.DataFrame:
-        if os.path.exists(self.file_path):
-            df = pd.read_csv(self.file_path, index_col=0, parse_dates=True)
-        else:
-            df = self.fetch(debug=debug, **kwargs)
-            df.to_csv(self.file_path)
         
-        self.data = df
-        return df
-        
-class CoinGlassOI(CoinGlassData):
+class CoinGlassOI(LocalDataStore):
     """Class for fetching and storing CoinGlass Open Interest data."""
 
     coin: str
