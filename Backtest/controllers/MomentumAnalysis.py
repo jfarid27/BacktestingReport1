@@ -37,7 +37,8 @@ class MomentumAnalysis(BaseAnalysis):
         exits = fast_ma.ma_crossed_below(slow_ma)
         return (entries, exits)
 
-    def MomentumBasedLongOnly(self, init_cash: float = 100000, overwrite: bool = False):
+    def MomentumBasedLongOnly(self, short_window: int=15, long_window: int=50, 
+                              init_cash: float = 100000, overwrite: bool = False, **kwargs):
         """Return vbt portfolio object after applying MA strategy on price_data.
 
         Long only strategy. When the fast moving average is above the slow moving average,
@@ -53,17 +54,19 @@ class MomentumAnalysis(BaseAnalysis):
         """
 
         if self.portfolio is None or overwrite:
-            (entries, exits) = self._MAStrategy(15, 50)
+            (entries, exits) = self._MAStrategy(short_window, long_window)
             self.portfolio = Portfolio.from_signals(
                 self.price_data,
                 entries,
                 exits, 
                 init_cash=init_cash,
-                cash_sharing=True
+                cash_sharing=True,
+                **kwargs
             )
         return self.portfolio
     
-    def MomentumBasedLongShort(self, init_cash: float = 100000, overwrite: bool = False):
+    def MomentumBasedLongShort(self, short_window: int=10, long_window: int=50,
+                               init_cash: float = 100000, overwrite: bool = False, **kwargs):
         """Return vbt portfolio object after applying MA strategy on price_data.
 
         Long short strategy. When the fast moving average is above the slow moving average,
@@ -80,7 +83,7 @@ class MomentumAnalysis(BaseAnalysis):
         """
 
         if self.portfolio is None or overwrite:
-            (entries, exits) = self._MAStrategy(10, 50)
+            (entries, exits) = self._MAStrategy(short_window, long_window)
             (short_entries, short_exits) = (exits, entries)
             self.portfolio = Portfolio.from_signals(
                 self.price_data,
@@ -89,6 +92,7 @@ class MomentumAnalysis(BaseAnalysis):
                 short_entries,
                 short_exits,
                 init_cash=init_cash,
-                cash_sharing=True
+                cash_sharing=True,
+                **kwargs
             )
         return self.portfolio

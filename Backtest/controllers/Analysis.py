@@ -1,8 +1,10 @@
 from vectorbt.portfolio import Portfolio
 from typing import Any, Optional
 import plotly.graph_objects as go
+import matplotlib.pyplot as plt
 import scipy.stats as stats
 import numpy as np
+import pandas as pd
 
 def plot_table_statistics(data: np.ndarray, **kwargs):   
     """
@@ -125,6 +127,24 @@ def plot_statistics(data: np.ndarray, target: float = None, **kwargs):
     )
 
     fig.show()
+
+def plot_datetime_splits(data: np.ndarray, **kwargs):
+    datetime_ranges = [(pd.to_datetime(split[0]), pd.to_datetime(split[-1])) for split in data]
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    for i, (start, end) in enumerate(datetime_ranges):
+        ax.plot([start, end], [i, i], color='blue', marker='o', linewidth=5)
+
+    ax.set_yticks(range(len(datetime_ranges)))
+    ax.set_yticklabels([f'Range {i+1}' for i in range(len(datetime_ranges))])
+
+    ax.xaxis_date()
+    fig.autofmt_xdate()
+
+    ax.set_xlabel('Date')
+    ax.set_ylabel('Ranges')
+    ax.set_title('Datetime Ranges')
 
 class BaseAnalysis():
     price_data: Any
