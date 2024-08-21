@@ -69,14 +69,17 @@ class MomentumAnalysis(BaseAnalysis):
                                init_cash: float = 100000, overwrite: bool = False, **kwargs):
         """Return vbt portfolio object after applying MA strategy on price_data.
 
-        Long short strategy. When the fast moving average is above the slow moving average,
+         Long short strategy. When the fast moving average is above the slow moving average,
         enters long position and closes shorts, and vice versa. If portfolio is already created,
         returns the same portfolio unless overwrite is True. Assumes total available cash
         is shared among all assets.
 
         Args:
+            short_window (int): The window size for the short-term moving average. Defaults to 10.
+            long_window (int): The window size for the long-term moving average. Defaults to 50.
             init_cash (float): Initial cash to be used for the portfolio. Defaults to 100000.
             overwrite (bool): If True, overwrite the existing portfolio even if it exists. Defaults to False.
+            **kwargs: Additional keyword arguments to be passed to the Portfolio.
 
         Returns:
             Portfolio: The portfolio object after applying the MA strategy.

@@ -5,7 +5,7 @@ import vectorbt as vbt
 
 current_dir = Path.cwd()
 
-oi_data_file = current_dir / "data/coin_glass_oi_{}.csv"
+oi_data_file = current_dir
 fg_data_file = current_dir / "data/coin_glass_fg.csv"
 
 def fetch_oi(coin: str, **kwargs):
@@ -18,7 +18,8 @@ def fetch_oi(coin: str, **kwargs):
     Returns:
         CoinGlassOI: The open interest data for the specified coin.
     """
-    data = CoinGlassOI(file_path=oi_data_file.format(coin), coin=coin)
+    coin_file = oi_data_file / "data/coin_glass_{}_oi.csv".format(coin)
+    data = CoinGlassOI(file_path=coin_file, coin=coin)
     data.load(**kwargs)
     return data
 
