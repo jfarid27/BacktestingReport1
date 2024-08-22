@@ -1,8 +1,19 @@
-from typing import Any, Optional, List
+from typing import Any, Optional, List, Callable
 from vectorbt.portfolio import Portfolio
 import numpy as np
 from math import isfinite
 import copy
+
+def compute_sharpe_ratio_fitness(evolutionary_portfolio):
+    """
+    Calculate the fitness of the evolutionary model.
+
+    Returns:
+        float: The fitness value, which is the sharpe ratio of the portfolio.
+                If the sharpe ratio is not finite, -1 is returned.
+    """
+    fitness = evolutionary_portfolio.portfolio.sharpe_ratio()
+    return fitness if isfinite(fitness) else -1
 
 def blend_signals(entries, exits, weights, entry_threshold=0.5, exit_threshold=0.5, debug=False):
     """Take list of vectorbt entries and exits, and blend them into a single signal.
@@ -80,8 +91,26 @@ class EvolutionaryPortfolio:
     entry_threshold: float
     exit_threshold: float
     init_cash: float
+    fitness_criteria: Callable[[Any], float] 
     
-    def __init__(self, data, weights, entries, exits, entry_threshold=0.5, exit_threshold=0.5, init_cash=100000):
+    def __init__(self, data, weights, entries, exits, entry_threshold=0.5, exit_threshold=0.5,
+                 init_cash=100000, fitness_criteria=compute_sharpe_ratio_fitness):
+        """
+        Initializes an instance of the EvolutionaryModel class.
+
+        Parameters:
+        - data: The data used for backtesting.
+        - weights: The weights assigned to the entries and exits.
+        - entries: The entry signals.
+        - exits: The exit signals.
+        - entry_threshold: The threshold for considering an entry signal.
+        - exit_threshold: The threshold for considering an exit signal.
+        - init_cash: The initial cash for the portfolio.
+        - fitness_criteria: The fitness criteria used for evaluating the model.
+
+        Returns:
+        None
+        """
         self.data = data
         self.weights = weights
         self.entries = entries
@@ -103,6 +132,7 @@ class EvolutionaryPortfolio:
             init_cash=self.init_cash,
             cash_sharing=True
         )
+        self.fitness_criteria = fitness_criteria
 
     def evolve_portfolio(self, mutation_rate=0.01, debug=False):
         """
@@ -146,6 +176,16 @@ class EvolutionaryPortfolio:
             self.weighted_exits = weighted_exits
             self.portfolio = portfolio
     
+    def fitness(self):
+        """
+        Calculate the fitness of the evolutionary model.
+
+        Returns:
+            float: The fitness value, which is the sharpe ratio of the portfolio.
+                   If the sharpe ratio is not finite, -1 is returned.
+        """
+        return self.fitness_criteria(self)
+    
     def clone(self):
         """Create a deep copy of the current portfolio."""
         return copy.deepcopy(self)
@@ -184,12 +224,9 @@ class EvolutionaryPortfolioFamily:
         self.evolutionary_portfolios = [best_portfolio.clone() for _ in range(len(self.evolutionary_portfolios))]
 
     def fetch_best_portfolio(self):
-        """Fetch the portfolio with the highest sharpe ratio."""
-        sharpe_ratios = [
-            portfolio.portfolio.sharpe_ratio() if isfinite(portfolio.portfolio.sharpe_ratio()) else 0
-            for portfolio in self.evolutionary_portfolios
-        ]
-        best_index = np.argmax(sharpe_ratios)
+        """Fetch the portfolio with the highest fitness."""
+        fitnesses = [portfolio.fitness() for portfolio in self.evolutionary_portfolios]
+        best_index = np.argmax(fitnesses)
         return self.evolutionary_portfolios[best_index]
     
     def run_simulation(self, n_steps=20, generation_size=10, temperature=1, delta=1, results_log=None, debug=False):
