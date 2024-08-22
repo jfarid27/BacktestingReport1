@@ -105,7 +105,14 @@ class EvolutionaryPortfolio:
         )
 
     def evolve_portfolio(self, mutation_rate=0.01, debug=False):
-        """Evolve the portfolio by mutating the weights."""
+        """
+        Evolve the portfolio by mutating the weights.
+        Parameters:
+        - mutation_rate (float): The rate at which the weights are mutated. Default is 0.01.
+        - debug (bool): If True, print the old and new Sharpe ratios. Default is False.
+        Returns:
+            None
+        """
         new_weights = generate_weights(self.weights, mutation_rate)
         weighted_entries, weighted_exits = blend_signals(
             self.entries, self.exits, new_weights,
@@ -171,13 +178,9 @@ class EvolutionaryPortfolioFamily:
             portfolio.evolve_portfolio(mutation_rate)
 
     def optimize_genes(self):
-        """Evolve the portfolio by selecting the current portfolio with highest fitness, and cloning it across the family.
-        
-        The current portfolio is selected based on the sharpe ratio of the portfolio.
-        """
+        """Clone the best portfolio currently in the family and replace all other portfolios with it."""
 
         best_portfolio = self.fetch_best_portfolio()
-
         self.evolutionary_portfolios = [best_portfolio.clone() for _ in range(len(self.evolutionary_portfolios))]
 
     def fetch_best_portfolio(self):
@@ -190,7 +193,17 @@ class EvolutionaryPortfolioFamily:
         return self.evolutionary_portfolios[best_index]
     
     def run_simulation(self, n_steps=20, generation_size=10, temperature=1, delta=1, results_log=None, debug=False):
-        """Run a simulation of the family of portfolios."""
+        """
+        Run a simulation of the family of portfolios.
+
+        Parameters:
+        - n_steps (int): Number of steps to run the simulation for. Default is 20.
+        - generation_size (int): Size of each generation. Default is 10.
+        - temperature (int): Initial temperature for mutation rate. Default is 1.
+        - delta (int): Temperature decay factor. Default is 1.
+        - results_log (file): File object to write simulation results to. Default is None.
+        - debug (bool): Flag to enable debug mode. Default is False.
+        """
         step = 0
         generation_counter = 0
 
