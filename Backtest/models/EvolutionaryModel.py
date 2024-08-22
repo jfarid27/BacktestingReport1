@@ -4,15 +4,15 @@ import numpy as np
 from math import isfinite
 import copy
 
-def compute_sharpe_ratio_fitness(evolutionary_portfolio):
+def compute_sharpe_ratio_fitness(portfolio: Portfolio) -> float:
     """
-    Calculate the fitness of the evolutionary model.
+    Calculate the fitness of the evolutionary model's portfolio.
 
     Returns:
         float: The fitness value, which is the sharpe ratio of the portfolio.
                 If the sharpe ratio is not finite, -1 is returned.
     """
-    fitness = evolutionary_portfolio.portfolio.sharpe_ratio()
+    fitness = portfolio.sharpe_ratio()
     return fitness if isfinite(fitness) else -1
 
 def blend_signals(entries, exits, weights, entry_threshold=0.5, exit_threshold=0.5, debug=False):
@@ -130,7 +130,8 @@ class EvolutionaryPortfolio:
             entries=self.weighted_entries,
             exits=self.weighted_exits, 
             init_cash=self.init_cash,
-            cash_sharing=True
+            cash_sharing=True,
+            freq="1d"
         )
         self.fitness_criteria = fitness_criteria
 
@@ -155,22 +156,18 @@ class EvolutionaryPortfolio:
             entries=weighted_entries,
             exits=weighted_exits, 
             init_cash=self.init_cash,
-            cash_sharing=True
+            cash_sharing=True,
+            freq="1d"
         )
 
+        old_fitness = self.fitness()
+        new_fitness = self.fitness_criteria(portfolio)
+
         if debug:
-            print("Old Sharpe Ratio: ", self.portfolio.sharpe_ratio())
-            print("New Sharpe Ratio: ", portfolio.sharpe_ratio())
+            print("Old Fitness: ", old_fitness)
+            print("New Fitness: ", new_fitness)
 
-        no_prev_trade = not isfinite(self.portfolio.sharpe_ratio())
-        new_is_finite = isfinite(portfolio.sharpe_ratio())
-        old_is_finite = isfinite(self.portfolio.sharpe_ratio())
-
-        if (no_prev_trade or 
-            (new_is_finite and not old_is_finite) or
-            (new_is_finite and
-                portfolio.sharpe_ratio() >= self.portfolio.sharpe_ratio()
-        )):
+        if (new_fitness >= old_fitness):
             self.weights = new_weights
             self.weighted_entries = weighted_entries
             self.weighted_exits = weighted_exits
@@ -184,7 +181,7 @@ class EvolutionaryPortfolio:
             float: The fitness value, which is the sharpe ratio of the portfolio.
                    If the sharpe ratio is not finite, -1 is returned.
         """
-        return self.fitness_criteria(self)
+        return self.fitness_criteria(self.portfolio)
     
     def clone(self):
         """Create a deep copy of the current portfolio."""
@@ -254,7 +251,7 @@ class EvolutionaryPortfolioFamily:
                 generation_counter = 0
                 if results_log:
                     best_portfolio = self.fetch_best_portfolio()
-                    sharpe = best_portfolio.portfolio.sharpe_ratio()
+                    sharpe = best_portfolio.fitness()
                     weights = best_portfolio.weights
                     weights_str = ",".join(map(str, weights))
                     csv_row = f"{step},{sharpe},{weights_str}\n"
