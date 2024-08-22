@@ -1,9 +1,10 @@
 from typing import Any, Optional, List
 from vectorbt.portfolio import Portfolio
 import numpy as np
+from math import isfinite
 import copy
 
-def blend_signals(entries, exits, weights, entry_threshold=0.5, exit_threshold=0.5):
+def blend_signals(entries, exits, weights, entry_threshold=0.5, exit_threshold=0.5, debug=False):
     """Take list of vectorbt entries and exits, and blend them into a single signal.
     
     New signal is just a weighted average of the entries and exits. Tunable with threshold
@@ -23,17 +24,19 @@ def blend_signals(entries, exits, weights, entry_threshold=0.5, exit_threshold=0
 
     weights = np.array(weights)
     
-    # Calculate weighted average for entries and exits
+    if debug:
+        print(entries)
+        print(exits)
+        print(weights)
     weighted_entries = np.average(entries, axis=0, weights=weights)
     weighted_exits = np.average(exits, axis=0, weights=weights)
     
-    # Generate blended signals
     blended_entries = weighted_entries > entry_threshold
     blended_exits = weighted_exits > exit_threshold
     
     return blended_entries, blended_exits
 
-def generate_weights(weights=None, mutation_rate=0.01):
+def generate_weights(weights=None, weight_length=0, mutation_rate=0.01, debug=False):
     """Mutates weight array vector by adding random noise to weight array elements and normalizing.
     
     Args:
@@ -44,18 +47,21 @@ def generate_weights(weights=None, mutation_rate=0.01):
         np.ndarray: Mutated and normalized weights vector.
     """
     if weights is None:
-        weights = np.random.rand(10) 
-        weights /= np.sum(weights)
+        weights = np.ones(weight_length)
+        weights /= weight_length
+        return weights
 
-    # Mutate weights by adding random noise
     noise = np.random.normal(0, mutation_rate, size=weights.shape)
     mutated_weights = weights + noise
 
-    # Ensure weights are non-negative
-    mutated_weights = np.clip(mutated_weights, 0, None)
 
-    # Normalize weights to sum to 1
+    mutated_weights = np.clip(mutated_weights, 0.01, None)
+
+
     normalized_weights = mutated_weights / np.sum(mutated_weights)
+
+    if debug:
+        print("Normalized Weights: ", normalized_weights)
 
     return normalized_weights
 
@@ -71,23 +77,26 @@ class EvolutionaryPortfolio:
     exits: List[Any]
     weighted_entries: List[Any]
     weighted_exits: List[Any]
+    entry_threshold: float
+    exit_threshold: float
     init_cash: float
     
-    def __init__(self, data, weights, entries, exits, init_cash=100000):
+    def __init__(self, data, weights, entries, exits, entry_threshold=0.5, exit_threshold=0.5, init_cash=100000):
         self.data = data
         self.weights = weights
         self.entries = entries
         self.exits = exits
         self.init_cash = init_cash
-        weighted_entries, weighted_exits = blend_signals(entries, exits, weights)
-        self.weighted_entries = weighted_entries
-        self.weighted_exits = weighted_exits
-
-    def evolve_portfolio(self, mutation_rate=0.01):
-        """Evolve the portfolio by mutating the weights."""
-        new_weights = generate_weights(self.weights, mutation_rate)
-        weighted_entries, weighted_exits = blend_signals(self.entries, self.exits, self.weights)
-        portfolio = Portfolio.from_signals(
+        self.entry_threshold = entry_threshold
+        self.exit_threshold = exit_threshold
+        self.weighted_entries, self.weighted_exits = blend_signals(
+            entries, exits, weights,
+            entry_threshold=entry_threshold,
+            exit_threshold=exit_threshold
+        )
+        self.entries = entries
+        self.exits = exits
+        self.portfolio = Portfolio.from_signals(
             self.data,
             entries=self.weighted_entries,
             exits=self.weighted_exits, 
@@ -95,7 +104,36 @@ class EvolutionaryPortfolio:
             cash_sharing=True
         )
 
-        if (portfolio.sharpe_ratio() > self.portfolio.sharpe_ratio()):
+    def evolve_portfolio(self, mutation_rate=0.01, debug=False):
+        """Evolve the portfolio by mutating the weights."""
+        new_weights = generate_weights(self.weights, mutation_rate)
+        weighted_entries, weighted_exits = blend_signals(
+            self.entries, self.exits, new_weights,
+            entry_threshold=self.entry_threshold,
+            exit_threshold=self.exit_threshold
+        )
+        
+        portfolio = Portfolio.from_signals(
+            self.data,
+            entries=weighted_entries,
+            exits=weighted_exits, 
+            init_cash=self.init_cash,
+            cash_sharing=True
+        )
+
+        if debug:
+            print("Old Sharpe Ratio: ", self.portfolio.sharpe_ratio())
+            print("New Sharpe Ratio: ", portfolio.sharpe_ratio())
+
+        no_prev_trade = not isfinite(self.portfolio.sharpe_ratio())
+        new_is_finite = isfinite(portfolio.sharpe_ratio())
+        old_is_finite = isfinite(self.portfolio.sharpe_ratio())
+
+        if (no_prev_trade or 
+            (new_is_finite and not old_is_finite) or
+            (new_is_finite and
+                portfolio.sharpe_ratio() >= self.portfolio.sharpe_ratio()
+        )):
             self.weights = new_weights
             self.weighted_entries = weighted_entries
             self.weighted_exits = weighted_exits
@@ -113,12 +151,19 @@ class EvolutionaryPortfolioFamily:
     exits: List[Any]
     evolutionary_portfolios: Optional[List[EvolutionaryPortfolio]] = None
 
-    def __init__(self, data, portfolio, weights, entries, exits, num_portfolios=10):
+    def __init__(self, data, weights, entries, exits, num_portfolios=10, entry_threshold=0.5, exit_threshold=0.5,):
         self.data = data
         self.initial_weights = weights
         self.entries = entries
         self.exits = exits
-        self.evolutionary_portfolios = [EvolutionaryPortfolio(data, weights, entries, exits) for _ in range(num_portfolios)]
+        self.entry_threshold = entry_threshold
+        self.exit_threshold = exit_threshold
+        self.evolutionary_portfolios = [
+            EvolutionaryPortfolio(data, weights, entries, exits,
+                                  entry_threshold=self.entry_threshold,
+                                  exit_threshold=self.exit_threshold) 
+            for _ in range(num_portfolios)
+        ]
 
     def evolve_family(self, mutation_rate=0.01):
         """Evolve the family of portfolios."""
@@ -130,25 +175,41 @@ class EvolutionaryPortfolioFamily:
         
         The current portfolio is selected based on the sharpe ratio of the portfolio.
         """
-        sharpe_ratios = [portfolio.calculate_sharpe_ratio() for portfolio in self.evolutionary_portfolios]
 
-        best_index = np.argmax(sharpe_ratios)
+        best_portfolio = self.fetch_best_portfolio()
 
-        best_portfolio = self.evolutionary_portfolios[best_index]
-
-        # Clone the best portfolio across the family
         self.evolutionary_portfolios = [best_portfolio.clone() for _ in range(len(self.evolutionary_portfolios))]
 
+    def fetch_best_portfolio(self):
+        """Fetch the portfolio with the highest sharpe ratio."""
+        sharpe_ratios = [
+            portfolio.portfolio.sharpe_ratio() if isfinite(portfolio.portfolio.sharpe_ratio()) else 0
+            for portfolio in self.evolutionary_portfolios
+        ]
+        best_index = np.argmax(sharpe_ratios)
+        return self.evolutionary_portfolios[best_index]
     
-    def run_simulation(self, n_steps=20, generation_size=10):
+    def run_simulation(self, n_steps=20, generation_size=10, temperature=1, delta=1, results_log=None, debug=False):
         """Run a simulation of the family of portfolios."""
         step = 0
         generation_counter = 0
 
         while step < n_steps:
-            self.evolve_family()
+            self.evolve_family(mutation_rate=temperature)
             step += 1
             generation_counter += 1
             if generation_counter == generation_size:
+                temperature *= delta
                 self.optimize_genes()
                 generation_counter = 0
+                if results_log:
+                    best_portfolio = self.fetch_best_portfolio()
+                    sharpe = best_portfolio.portfolio.sharpe_ratio()
+                    weights = best_portfolio.weights
+                    weights_str = ",".join(map(str, weights))
+                    csv_row = f"{step},{sharpe},{weights_str}\n"
+                    if debug: 
+                        print(csv_row)
+                    with results_log.open(mode='a') as file:
+                        file.write(csv_row)
+                        pass
