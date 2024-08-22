@@ -91,10 +91,11 @@ class EvolutionaryPortfolio:
     entry_threshold: float
     exit_threshold: float
     init_cash: float
-    fitness_criteria: Callable[[Any], float] 
+    fitness_criteria: Callable[[Any], float]
+    portfolio_kwargs: dict
     
     def __init__(self, data, weights, entries, exits, entry_threshold=0.5, exit_threshold=0.5,
-                 init_cash=100000, fitness_criteria=compute_sharpe_ratio_fitness):
+                 fitness_criteria=compute_sharpe_ratio_fitness, **portfolio_kwargs):
         """
         Initializes an instance of the EvolutionaryModel class.
 
@@ -115,25 +116,24 @@ class EvolutionaryPortfolio:
         self.weights = weights
         self.entries = entries
         self.exits = exits
-        self.init_cash = init_cash
         self.entry_threshold = entry_threshold
         self.exit_threshold = exit_threshold
+        self.fitness_criteria = fitness_criteria
+        self.portfolio_kwargs = portfolio_kwargs
+
         self.weighted_entries, self.weighted_exits = blend_signals(
-            entries, exits, weights,
-            entry_threshold=entry_threshold,
-            exit_threshold=exit_threshold
+            self.entries,
+            self.exits,
+            weights,
+            entry_threshold=self.entry_threshold,
+            exit_threshold=self.exit_threshold
         )
-        self.entries = entries
-        self.exits = exits
         self.portfolio = Portfolio.from_signals(
             self.data,
             entries=self.weighted_entries,
-            exits=self.weighted_exits, 
-            init_cash=self.init_cash,
-            cash_sharing=True,
-            freq="1d"
+            exits=self.weighted_exits,
+            **portfolio_kwargs
         )
-        self.fitness_criteria = fitness_criteria
 
     def evolve_portfolio(self, mutation_rate=0.01, debug=False):
         """
@@ -146,7 +146,9 @@ class EvolutionaryPortfolio:
         """
         new_weights = generate_weights(self.weights, mutation_rate)
         weighted_entries, weighted_exits = blend_signals(
-            self.entries, self.exits, new_weights,
+            self.entries,
+            self.exits,
+            new_weights,
             entry_threshold=self.entry_threshold,
             exit_threshold=self.exit_threshold
         )
@@ -155,9 +157,7 @@ class EvolutionaryPortfolio:
             self.data,
             entries=weighted_entries,
             exits=weighted_exits, 
-            init_cash=self.init_cash,
-            cash_sharing=True,
-            freq="1d"
+            **self.portfolio_kwargs
         )
 
         old_fitness = self.fitness()
@@ -195,7 +195,8 @@ class EvolutionaryPortfolioFamily:
     exits: List[Any]
     evolutionary_portfolios: Optional[List[EvolutionaryPortfolio]] = None
 
-    def __init__(self, data, weights, entries, exits, num_portfolios=10, entry_threshold=0.5, exit_threshold=0.5,):
+    def __init__(self, data, weights, entries, exits, num_portfolios=10,
+                 entry_threshold=0.5, exit_threshold=0.5, **portfolio_kwargs):
         self.data = data
         self.initial_weights = weights
         self.entries = entries
@@ -205,7 +206,8 @@ class EvolutionaryPortfolioFamily:
         self.evolutionary_portfolios = [
             EvolutionaryPortfolio(data, weights, entries, exits,
                                   entry_threshold=self.entry_threshold,
-                                  exit_threshold=self.exit_threshold) 
+                                  exit_threshold=self.exit_threshold,
+                                  **portfolio_kwargs) 
             for _ in range(num_portfolios)
         ]
 
